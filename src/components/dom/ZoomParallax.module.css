@@ -1,0 +1,67 @@
+.container {
+  position: relative;
+  height: 300vh;
+  background: var(--background);
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.el {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.center {
+  z-index: 20;
+}
+
+/* Laid out at full viewport size and scaled down, so it stays sharp at full zoom. */
+.centerImage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #111;
+}
+
+.tileImage {
+  position: relative;
+  width: 25vw;
+  height: 25vh;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: 0 12px 32px -8px rgb(124 92 255 / 0.25);
+  background: #111;
+}
+
+.el:nth-child(2) .tileImage { top: -30vh; left: 5vw; }
+.el:nth-child(3) .tileImage { top: -10vh; left: -26vw; }
+.el:nth-child(4) .tileImage { top: 0; left: 27.5vw; }
+.el:nth-child(5) .tileImage { top: 28vh; left: 6vw; }
+.el:nth-child(6) .tileImage { top: 27vh; left: -24vw; }
+.el:nth-child(7) .tileImage { top: 23vh; left: 26vw; }
+
+@media (max-width: 768px) {
+  .el:nth-child(2) .tileImage { top: -34vh; left: 0; }
+  .el:nth-child(3) .tileImage { top: -16vh; left: -32vw; }
+  .el:nth-child(4) .tileImage { top: -16vh; left: 32vw; }
+  .el:nth-child(5) .tileImage { top: 34vh; left: 0; }
+  .el:nth-child(6) .tileImage { top: 18vh; left: -32vw; }
+  .el:nth-child(7) .tileImage { top: 18vh; left: 32vw; }
+}
+
+/* No scroll-driven zoom: show the featured image as a static full-screen block. */
+@media (prefers-reduced-motion: reduce) {
+  .container { height: 100vh; }
+  .el:not(.center) { display: none; }
+}
