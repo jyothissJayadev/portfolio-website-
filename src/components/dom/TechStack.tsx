@@ -1,28 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-
-// Physics (Rapier WASM) and WebGL are client-only, so the scene is never server-rendered.
-const TechStackScene = dynamic(() => import("@/components/canvas/TechStackScene"), {
-  ssr: false,
-});
+import Image from "next/image";
+import PathMarquee from "@/components/dom/PathMarquee";
+import { site } from "@/content/site";
 
 export default function TechStack() {
-  const ref = useRef<HTMLElement>(null);
-  const [isActive, setIsActive] = useState(false);
-
-  // Spheres rush in when the section scrolls into view and the loop pauses when it leaves.
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => setIsActive(entry.isIntersecting), {
-      threshold: 0.2,
-    });
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <section id="techstack" ref={ref} className="relative h-screen w-full overflow-clip">
+    <section id="techstack" className="relative h-screen w-full overflow-clip">
       {/* Violet glow behind the heading. It has no solid base, so the page background
           and starfield run through the section without a visible band, and it fades
           out well before the top and bottom edges. */}
@@ -35,14 +19,38 @@ export default function TechStack() {
           maskImage: "linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)",
         }}
       />
-      {/* The heading sits behind the transparent canvas, so spheres can drift over it. */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <h2 className="px-4 text-center text-4xl font-normal uppercase tracking-tight md:text-7xl">
-          My Techstack
-        </h2>
-      </div>
-      <div className="absolute inset-0">
-        <TechStackScene isActive={isActive} />
+      <div className="relative flex h-full flex-col">
+        <div className="pointer-events-none flex flex-col items-center px-6 pt-20 text-center md:pt-24">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-300">
+            What I work with
+          </p>
+          <h2 className="mt-3 bg-linear-to-b from-white to-violet-200/70 bg-clip-text text-4xl font-semibold tracking-tight text-transparent md:text-6xl">
+            My Tech Stack
+          </h2>
+          <p className="mt-3 text-sm text-white/50">Drag the cards.</p>
+        </div>
+        <div className="relative min-h-0 flex-1">
+          <PathMarquee preset="wave" speed={4} repeat={1}>
+            {site.techStack.map(({ name, src }) => (
+              <div
+                key={name}
+                className="relative h-[110px] w-20 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_12px_40px_-12px_rgb(124_92_255/0.55)] ring-1 ring-violet-400/10 transition-[scale,border-color] duration-300 hover:scale-110 hover:border-violet-400/50 md:h-44 md:w-32"
+              >
+                {/* The logo textures are white with two copies side by side: object-left
+                    shows one copy, and invert + hue-rotate turns the white into black
+                    while keeping the brand colors close to the original. */}
+                <Image
+                  src={src}
+                  alt={name}
+                  fill
+                  sizes="(min-width: 768px) 256px, 160px"
+                  draggable={false}
+                  className="pointer-events-none object-cover object-left invert hue-rotate-180"
+                />
+              </div>
+            ))}
+          </PathMarquee>
+        </div>
       </div>
     </section>
   );

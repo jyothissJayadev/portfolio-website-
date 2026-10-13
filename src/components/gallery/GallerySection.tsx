@@ -50,7 +50,9 @@ export default function GallerySection() {
     () => {
       ScrollTrigger.create({
         trigger: container.current,
-        start: "top top",
+        // The section is pinned under the fading intro first; hold the sphere still
+        // until the fade is almost done, then start zooming in.
+        start: "top -60%",
         end: "bottom bottom",
         onUpdate: (self) => {
           controls.current.scroll = self.progress;
@@ -71,7 +73,10 @@ export default function GallerySection() {
       id="projects"
       ref={container}
       data-covers-background
-      className="relative h-[400vh] bg-background">
+      // Pulled up under the last 100vh of the intro's pinned scroll (see IntroSection),
+      // so the sphere is already there as the camera goes through the window.
+      // The negative scroll margin makes #projects links land after the intro has faded.
+      className="relative -mt-[200vh] h-[460vh] scroll-mt-[-140vh] bg-background">
       <div
         className={`sticky top-0 h-screen overflow-hidden ${
           hovered === null ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"

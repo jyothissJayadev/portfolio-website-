@@ -11,13 +11,17 @@ import * as THREE from "three";
 import { site } from "@/content/site";
 
 const ASSETS = "/footer";
+const FOV = 15;
+// Where Intro settles the camera, and where the text sits (inside the group at y -1).
+const CAMERA_REST = new THREE.Vector3(0, 3, 14);
+const TEXT_ANCHOR = new THREE.Vector3(0, -0.85, -2);
 
 export default function FooterScene({ active }: { active: boolean }) {
   return (
     <Canvas
       gl={{ alpha: false }}
       dpr={[1, 1.5]}
-      camera={{ position: [0, 3, 100], fov: 15 }}
+      camera={{ position: [0, 3, 100], fov: FOV }}
       // Stop rendering while the footer is off screen.
       frameloop={active ? "always" : "never"}
     >
@@ -63,10 +67,13 @@ function VideoText({ playing, ...props }: { playing: boolean } & Omit<ThreeEleme
   }, [video, playing]);
 
   // The original word is 4 letters at fontSize 3; shrink longer text to fit the screen.
-  const camera = useThree((s) => s.camera);
-  const viewport = useThree((s) => s.viewport);
+  const size = useThree((s) => s.size);
   const [width, setWidth] = useState(0);
-  const visibleWidth = viewport.getCurrentViewport(camera, new THREE.Vector3(0, 0, -2)).width;
+  // Measured from the resting camera, not the live one: during the intro dolly the
+  // camera starts far away, which would make the text fit at full size and overflow.
+  const distance = CAMERA_REST.distanceTo(TEXT_ANCHOR);
+  const visibleHeight = 2 * distance * Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+  const visibleWidth = visibleHeight * (size.width / size.height);
   const scale = width ? Math.min(1, (visibleWidth * 0.85) / width) : 1;
 
   return (
@@ -76,6 +83,7 @@ function VideoText({ playing, ...props }: { playing: boolean } & Omit<ThreeEleme
       letterSpacing={-0.06}
       anchorY="bottom-baseline"
       scale={scale}
+      visible={width > 0} // hide until measured, so it never flashes at full size
       onSync={(mesh) => {
         const [minX, , maxX] = mesh.textRenderInfo.blockBounds;
         setWidth(maxX - minX);
@@ -118,7 +126,7 @@ function Ground() {
 function Intro() {
   const [vec] = useState(() => new THREE.Vector3());
   useFrame((state) => {
-    state.camera.position.lerp(vec.set(state.pointer.x * 5, 3 + state.pointer.y * 2, 14), 0.05);
+    state.camera.position.lerp(vec.set(CAMERA_REST.x + state.pointer.x * 5, CAMERA_REST.y + state.pointer.y * 2, CAMERA_REST.z), 0.05);
     state.camera.lookAt(0, 0, 0);
   });
   return null;

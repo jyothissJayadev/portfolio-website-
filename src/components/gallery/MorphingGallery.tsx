@@ -3,7 +3,7 @@
 // Adapted from Spatty (https://github.com/eloi-web/Spatty), MIT License,
 // Copyright (c) 2026 Ntwali Rwilima Eloi Miguel.
 // Changed to be driven by page scroll instead of the mouse wheel and a mode toggle,
-// and the background tint (Spatty's SceneEnvironment) is folded in, retuned for a dark theme.
+// and the background tint (Spatty's SceneEnvironment) is dropped so the canvas matches the page.
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
@@ -27,39 +27,9 @@ const _sp = new THREE.Vector3();
 const _ls = new THREE.Vector3();
 const _lt = new THREE.Vector3();
 const _lx = new THREE.Vector3();
-const _cf = new THREE.Vector3();
-const _ti = new THREE.Vector3();
 
-// Background is the page colour, tinted slightly toward the nearest image.
-const BG = new THREE.Color("#07060f");
-const TINT = 0.18;
-
-/** Averages an image down to one RGB colour using a tiny canvas. */
-function extractDominantColor(url: string): Promise<[number, number, number]> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 8;
-      canvas.height = 8;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return resolve([40, 40, 60]);
-      ctx.drawImage(img, 0, 0, 8, 8);
-      const { data } = ctx.getImageData(0, 0, 8, 8);
-      let r = 0, g = 0, b = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        r += data[i];
-        g += data[i + 1];
-        b += data[i + 2];
-      }
-      const px = data.length / 4;
-      resolve([Math.round(r / px), Math.round(g / px), Math.round(b / px)]);
-    };
-    img.onerror = () => resolve([40, 40, 60]);
-    img.src = url;
-  });
-}
+// Page background (--background in globals.css); the scene and fog use it so the canvas blends into the page.
+const BG = "#07060f";
 
 // Image zoom inside a card while it is hovered.
 const HOVER_ZOOM = 1.12;
@@ -112,13 +82,6 @@ export default function MorphingGallery({
   const smoothRot = useRef({ x: 0, y: 0 });
   const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
   const hovered = useRef<number | null>(null);
-  const nearest = useRef(-1);
-  const lastNearestCheck = useRef(0);
-  const colorCache = useRef(new Map<string, [number, number, number]>());
-  const envColor = useRef<[number, number, number]>([7, 6, 15]);
-  const bg = useRef(BG.clone());
-  const bgTarget = useRef(new THREE.Color());
-
   useFrame((state, delta) => {
     const c = controls.current;
     const p = c.scroll;
@@ -166,50 +129,12 @@ export default function MorphingGallery({
     cam.rotation.x = THREE.MathUtils.lerp(cam.rotation.x, -c.rotationX * 0.2 * t, 0.07);
     cam.rotation.y = THREE.MathUtils.lerp(cam.rotation.y, -c.rotationY * 0.2 * t, 0.07);
 
-    // 6. Every 400ms, find the image nearest the view direction and tint the scene with it.
-    const now = state.clock.elapsedTime;
-    if (now - lastNearestCheck.current > 0.4) {
-      lastNearestCheck.current = now;
-      cam.getWorldDirection(_cf);
-      let best = 0;
-      let maxDot = -Infinity;
-      for (let i = 0; i < meshes.length; i++) {
-        const mesh = meshes[i];
-        if (!mesh) continue;
-        const dot = _ti.copy(mesh.position).sub(cam.position).normalize().dot(_cf);
-        if (dot > maxDot) {
-          maxDot = dot;
-          best = i;
-        }
-      }
-      if (best !== nearest.current) {
-        nearest.current = best;
-        const url = images[best];
-        const cached = colorCache.current.get(url);
-        if (cached) envColor.current = cached;
-        else
-          extractDominantColor(url).then((color) => {
-            colorCache.current.set(url, color);
-            envColor.current = color;
-          });
-      }
-    }
-
-    // 7. Drift the background and fog toward the nearest image's colour.
-    const [r, g, b] = envColor.current;
-    bgTarget.current.setRGB(
-      BG.r * (1 - TINT) + (r / 255) * TINT,
-      BG.g * (1 - TINT) + (g / 255) * TINT,
-      BG.b * (1 - TINT) + (b / 255) * TINT,
-    );
-    bg.current.lerp(bgTarget.current, 0.025);
-    state.scene.background = bg.current;
-    if (state.scene.fog instanceof THREE.Fog) state.scene.fog.color.copy(bg.current);
   });
 
   return (
     <>
-      <fog attach="fog" args={["#07060f", 80, 230]} />
+      <color attach="background" args={[BG]} />
+      <fog attach="fog" args={[BG, 80, 230]} />
       {images.map((url, i) => (
         <DreiImage
           key={url + i}
